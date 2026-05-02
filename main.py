@@ -142,13 +142,40 @@ class LogisticsApp:
             row = tk.Frame(r_frame, bg=BG_COLOR); row.pack(pady=12, anchor="center")
             tk.Label(row, text=label_text, font=("Arial", 14, "bold"), bg=BG_COLOR, width=35, anchor="e").pack(side="left", padx=5)
             ent = tk.Entry(row, font=("Arial", 14), width=35); ent.pack(side="left", ipady=6)
-            tk.Button(row, text="ОБЗОР", bg="#34495e", fg="white", width=12, font=("Arial", 10, "bold"), command=lambda: ent.insert(0, filedialog.askopenfilename())).pack(side="left", padx=10, ipady=3)
+            # Исправлено: очищаем поле перед вставкой нового пути
+            tk.Button(row, text="ОБЗОР", bg="#34495e", fg="white", width=12, font=("Arial", 10, "bold"), 
+                      command=lambda e=ent: (e.delete(0, tk.END), e.insert(0, filedialog.askopenfilename()))).pack(side="left", padx=10, ipady=3)
             return ent
         self.e1 = create_row("Основной реестр (Реестр из МОС):"); self.e2 = create_row("Второй реестр (1-я форма):")
         tk.Button(self.main_area, text="ЗАПУСТИТЬ ОБРАБОТКУ", bg="#2980b9", fg="white", font=("Arial", 20, "bold"), padx=70, pady=25, 
-                  command=lambda: reestr_engine.run_reestr_process(self.e1.get(), self.e2.get(), APP_VERSION)).pack(pady=20)
+                  command=self.start_reestr_process).pack(pady=20)
         desc = "Принцип работы: сопоставление данных двух файлов для выявления расхождений."
         self.add_magic_footer(self.main_area, desc)
+
+    def start_reestr_process(self):
+        path1 = self.e1.get().strip()
+        path2 = self.e2.get().strip()
+        
+        if not path1:
+            messagebox.showerror("Ошибка", "Выберите Документ №1 (Реестр из МОС)")
+            return
+            
+        if not os.path.exists(path1):
+            messagebox.showerror("Ошибка", f"Файл №1 не найден:\n{path1}")
+            return
+            
+        if path2 and not os.path.exists(path2):
+            messagebox.showerror("Ошибка", f"Файл №2 не найден:\n{path2}")
+            return
+            
+        if path1 == path2:
+            messagebox.showerror("Ошибка", "Документ №1 и Документ №2 не могут быть одинаковыми файлами!")
+            return
+            
+        try:
+            reestr_engine.run_reestr_process(path1, path2, APP_VERSION)
+        except Exception as e:
+            messagebox.showerror("Ошибка", str(e))
 
     # --- МОДУЛЬ 3: ХРАНЕНИЕ ---
     def show_storage_module(self):
