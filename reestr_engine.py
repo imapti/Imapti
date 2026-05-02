@@ -96,16 +96,20 @@ def run_reestr_process(p1, p2, version):
                 # Расчет типа доставки
                 try:
                     w_val = ws1.Cells(i, 12).Value
-                    m1_val = ws1.Cells(i, 28).Value
-                    m2_val = ws1.Cells(i, 29).Value
-                    m3_val = ws1.Cells(i, 30).Value
+                    m1_val = ws1.Cells(i, 28).Value  # AB
+                    m2_val = ws1.Cells(i, 29).Value  # AC
+                    m3_val = ws1.Cells(i, 30).Value  # AD
                     
                     w = float(w_val) if w_val is not None else 0.0
                     m_vals = [float(x) if x is not None else 0.0 for x in [m1_val, m2_val, m3_val]]
                     m = max(m_vals)
                     
-                    t_cell = ws1.Cells(i, 9)
-                    if w > 30: 
+                    t_cell = ws1.Cells(i, 9)  # Столбец I
+                    
+                    # НОВОЕ ПРАВИЛО: если любой габарит > 1.801, то всегда "Стандартная с выгрузкой"
+                    if m > 1.801:
+                        t_cell.Value = "Стандартная с выгрузкой"
+                    elif w > 30: 
                         t_cell.Value = "Стандартная с выгрузкой"
                     elif 10.01 <= w <= 30: 
                         t_cell.Value = "Малогабаритная" if m <= 1.8 else "Стандартная с выгрузкой"

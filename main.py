@@ -1,20 +1,38 @@
-import os, sys, tkinter as tk
+import os
+import sys
+import traceback
+import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
 
 # Настройка путей
 current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path: sys.path.append(current_dir)
+if current_dir not in sys.path: 
+    sys.path.append(current_dir)
 
-import print_engine, reestr_engine, storage_engine
+try:
+    import print_engine
+    import reestr_engine
+    import storage_engine
+except ImportError as e:
+    print(f"КРИТИЧЕСКАЯ ОШИБКА ИМПОРТА: {e}")
+    print("Убедитесь, что файлы print_engine.py, reestr_engine.py, storage_engine.py находятся в той же папке.")
+    input("Нажмите Enter для выхода...")
+    sys.exit(1)
 
-APP_VERSION = "7.10 Stable"
+APP_VERSION = "7.11 Stable"
 BG_COLOR = "#ffe5b4" 
 
 class LogisticsApp:
     def __init__(self, root):
         self.root = root
         self.root.title(f"Логистический Ассистент v{APP_VERSION}")
-        self.root.state('zoomed')
+        
+        # Исправлено: безопасное развертывание окна
+        try:
+            self.root.state('zoomed')
+        except:
+            self.root.geometry("1920x1080")
+            self.root.attributes('-zoomed', True)
         
         self.db_folder = None
         self.data = None
@@ -38,26 +56,33 @@ class LogisticsApp:
         self.main_area = tk.Frame(self.root, bg=BG_COLOR)
         self.main_area.pack(side="right", expand=True, fill="both")
 
-        # Универсальный бинд вставки (без конфликтного кода 45)
+        # Универсальный бинд вставки
         self.root.bind_all("<Control-KeyPress>", self.universal_paste_handler)
-        
         self.root.bind_all("<Button-1>", self.global_click_handler)
         self.root.bind("<Configure>", self.on_resize)
         
-        self.show_print_module()
+        # Загрузка начального модуля с обработкой ошибок
+        try:
+            self.show_print_module()
+        except Exception as e:
+            messagebox.showerror("Ошибка запуска", f"Не удалось загрузить модуль печати:\n{str(e)}")
 
     def universal_paste_handler(self, event):
         # Проверяем, что нажат именно Ctrl+V (или русская М)
-        if event.state & 0x0004:  # Проверка флага Ctrl
+        # event.state & 0x0004 проверяет флаг Ctrl
+        if event.state & 0x0004:
             if event.keysym.lower() in ('v', 'м', 'cyrillic_em'):
                 widget = self.root.focus_get()
                 if isinstance(widget, (tk.Entry, tk.Text)):
                     try:
-                        widget.event_generate("<<Paste>>")
-                        return "break"  # Прерываем, чтобы не было двойной вставки
+                        # Выполняем вставку через буфер обмена Windows
+                        clipboard = self.root.clipboard_get()
+                        if clipboard:
+                            widget.insert(tk.INSERT, clipboard)
+                        return "break"  # Прерываем стандартную обработку, чтобы не было задвоения
                     except: 
                         pass
-        return None  # Возвращаем None, чтобы другие обработчики сработали
+        return None  # Возвращаем None, чтобы другие обработчики сработали для остальных клавиш
 
     def create_nav_btn(self, text, command):
         btn = tk.Button(self.sidebar, text=text, command=command, bg="#34495e", fg="white", 
